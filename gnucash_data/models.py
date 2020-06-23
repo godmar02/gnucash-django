@@ -22,6 +22,7 @@ class Book(models.Model):
 
   guid = models.CharField(max_length=32, primary_key=True)
   root_account = models.ForeignKey('Account', db_column='root_account_guid')
+  root_template = models.ForeignKey('Account', db_column='root_template_guid', related_name='book_root_template')
 
   class Meta:
     db_table = 'books'
@@ -42,6 +43,7 @@ class Account(models.Model):
 
   _balances = {}
   _root = None
+  _root_template = None
   _all_accounts = None
   _order = None
 
@@ -64,13 +66,19 @@ class Account(models.Model):
             a = c
             break
         if not found:
-          raise ValueError("Invalid account path '%s'" % path)
+            values = ','.join(str(v) for v in a.children)
+            raise ValueError("Invalid account path '%s' (children: %s)" % (path, values))
     return a
 
   @staticmethod
   def get_root():
     Account._ensure_cached()
     return Account._root
+
+  @staticmethod
+  def get_root_template():
+    Account._ensure_cached()
+    return Account._root_template
 
   @staticmethod
   def get(guid):
@@ -88,13 +96,16 @@ class Account(models.Model):
     if Account._root is None:
       Account._root = Book.objects.get().root_account
 
+    if Account._root_template is None:
+      Account._root_template = Book.objects.get().root_template
+
     if Account._all_accounts is None:
       def _path(account):
         if account.parent_guid is None:
           return account.name
         parts = []
         a = account
-        while not a.is_root:
+        while not (a.is_root or a.is_root_template):
           parts.append(a.name)
           a = Account.get(a.parent_guid)
         parts.reverse()
@@ -183,6 +194,10 @@ class Account(models.Model):
   @property
   def is_root(self):
     return self.guid == Account.get_root().guid
+
+  @property
+  def is_root_template(self):
+    return self.guid == Account.get_root_template().guid
 
   @property
   def path(self):

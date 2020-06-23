@@ -23,7 +23,8 @@ def format_dollar_amount(value, allow_negative=False):
     sign = '-'
   else:
     sign = ''
-  return sign + '$' + format_decimal(value)
+  #return sign + '$' + format_decimal(value)
+  return sign + 'GBP ' + format_decimal(value)
 
 def format_date(date):
   return date.strftime('%m/%d/%y')
